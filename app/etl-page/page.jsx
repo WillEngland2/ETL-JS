@@ -31,11 +31,20 @@ export default function ETLParserPage() {
 
       const data = await res.json();
 
-      if (res.ok && data.downloadLink) {
-        setDownloadLink(data.downloadLink);
+      if (res.ok && data.fileContent && data.fileName) {
+        const blob = new Blob([data.fileContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+      
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
         alert(data.error || 'Something went wrong');
-      }
+      }      
     } catch (error) {
       console.error('Upload failed:', error);
       alert(error.message || 'Unexpected error occurred');

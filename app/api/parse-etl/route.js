@@ -10,6 +10,7 @@ export async function POST(request) {
   const formData = await request.formData();
   const file = formData.get('etl');
   const invoiceDate = formData.get('invoice_date');
+  const outputName = formData.get('output_name') || 'parsed_output;'
 
   if (!file || typeof file.name !== 'string') {
     return NextResponse.json({ error: 'No valid file uploaded' }, { status: 400 });
@@ -31,8 +32,8 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    const processedDir = path.join(process.cwd(), 'public', 'processed-files');
+    const uploadsDir = '/tmp/uploads';
+    const processedDir = '/tmp/processed';
     fs.mkdirSync(uploadsDir, { recursive: true });
     fs.mkdirSync(processedDir, { recursive: true });
 
@@ -120,13 +121,14 @@ export async function POST(request) {
     ];
 
     const csv = Papa.unparse(cleanedRows, { columns: columnOrder });
-    const outputFilename = `parsed_${filename.replace(/\.[^/.]+$/, '')}.csv`;
+    const safeName = outputName.replace(/[^\w\-]/g, '_'); // sanitize
+    const outputFilename = `${safeName}.csv`;
     const outputPath = path.join(processedDir, outputFilename);
     await writeFile(outputPath, csv);
 
     return NextResponse.json({
-      message: 'File processed successfully',
-      downloadLink: `/processed-files/${outputFilename}`,
+      fileName: `${safeName}.csv`,
+      fileContent: csv,
     });
   } catch (err) {
     console.error('ETL processing failed:', err);
